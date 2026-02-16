@@ -1,6 +1,35 @@
 // Constants
 const MESSAGE_AUTO_HIDE_DELAY = 5000;
 
+// Helper function to create activity card content
+function createActivityCardContent(name, description, schedule, spotsLeft) {
+  const fragment = document.createDocumentFragment();
+  
+  const title = document.createElement("h4");
+  title.textContent = name;
+  fragment.appendChild(title);
+  
+  const desc = document.createElement("p");
+  desc.textContent = description;
+  fragment.appendChild(desc);
+  
+  const scheduleP = document.createElement("p");
+  const scheduleStrong = document.createElement("strong");
+  scheduleStrong.textContent = "Schedule: ";
+  scheduleP.appendChild(scheduleStrong);
+  scheduleP.appendChild(document.createTextNode(schedule));
+  fragment.appendChild(scheduleP);
+  
+  const availability = document.createElement("p");
+  const availStrong = document.createElement("strong");
+  availStrong.textContent = "Availability: ";
+  availability.appendChild(availStrong);
+  availability.appendChild(document.createTextNode(`${spotsLeft} spots left`));
+  fragment.appendChild(availability);
+  
+  return fragment;
+}
+
 // Global function to render activities (used by both initial load and updates)
 function renderActivities(activities) {
   const activitiesList = document.getElementById("activities-list");
@@ -20,8 +49,9 @@ function renderActivities(activities) {
 
     const spotsLeft = details.max_participants - details.participants.length;
 
-    // Build participants list
+    // Create activity card with participants if present
     if (details.participants.length > 0) {
+      // Create participants section
       const participantsSection = document.createElement("div");
       participantsSection.className = "participants-section";
       
@@ -51,54 +81,12 @@ function renderActivities(activities) {
       
       participantsSection.appendChild(participantsList);
       
-      const cardContent = document.createElement("div");
-      const title = document.createElement("h4");
-      title.textContent = name;
-      cardContent.appendChild(title);
-      
-      const desc = document.createElement("p");
-      desc.textContent = details.description;
-      cardContent.appendChild(desc);
-      
-      const schedule = document.createElement("p");
-      const scheduleStrong = document.createElement("strong");
-      scheduleStrong.textContent = "Schedule: ";
-      schedule.appendChild(scheduleStrong);
-      schedule.appendChild(document.createTextNode(details.schedule));
-      cardContent.appendChild(schedule);
-      
-      const availability = document.createElement("p");
-      const availStrong = document.createElement("strong");
-      availStrong.textContent = "Availability: ";
-      availability.appendChild(availStrong);
-      availability.appendChild(document.createTextNode(`${spotsLeft} spots left`));
-      cardContent.appendChild(availability);
-      
-      cardContent.appendChild(participantsSection);
-      activityCard.appendChild(cardContent);
+      // Add card content with participants section
+      activityCard.appendChild(createActivityCardContent(name, details.description, details.schedule, spotsLeft));
+      activityCard.appendChild(participantsSection);
     } else {
-      // No participants - simpler structure without participant section
-      const title = document.createElement("h4");
-      title.textContent = name;
-      activityCard.appendChild(title);
-      
-      const desc = document.createElement("p");
-      desc.textContent = details.description;
-      activityCard.appendChild(desc);
-      
-      const schedule = document.createElement("p");
-      const scheduleStrong = document.createElement("strong");
-      scheduleStrong.textContent = "Schedule: ";
-      schedule.appendChild(scheduleStrong);
-      schedule.appendChild(document.createTextNode(details.schedule));
-      activityCard.appendChild(schedule);
-      
-      const availability = document.createElement("p");
-      const availStrong = document.createElement("strong");
-      availStrong.textContent = "Availability: ";
-      availability.appendChild(availStrong);
-      availability.appendChild(document.createTextNode(`${spotsLeft} spots left`));
-      activityCard.appendChild(availability);
+      // No participants - just add card content
+      activityCard.appendChild(createActivityCardContent(name, details.description, details.schedule, spotsLeft));
     }
 
     activitiesList.appendChild(activityCard);
