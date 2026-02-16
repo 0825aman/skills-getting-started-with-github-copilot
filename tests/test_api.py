@@ -2,6 +2,7 @@
 Tests for the Mergington High School API
 """
 import pytest
+import copy
 from fastapi.testclient import TestClient
 from src.app import app, activities
 
@@ -15,22 +16,14 @@ def client():
 @pytest.fixture(autouse=True)
 def reset_activities():
     """Reset activities data before each test"""
-    # Store original state
-    original_activities = {
-        name: {
-            "description": details["description"],
-            "schedule": details["schedule"],
-            "max_participants": details["max_participants"],
-            "participants": details["participants"].copy()
-        }
-        for name, details in activities.items()
-    }
+    # Store original state using deep copy
+    original_activities = copy.deepcopy(activities)
     
     yield
     
     # Restore original state after test
-    for name, details in original_activities.items():
-        activities[name]["participants"] = details["participants"].copy()
+    activities.clear()
+    activities.update(original_activities)
 
 
 def test_root_redirects(client):

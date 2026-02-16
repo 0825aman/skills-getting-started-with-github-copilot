@@ -1,3 +1,13 @@
+// Constants
+const MESSAGE_AUTO_HIDE_DELAY = 5000;
+
+// Helper function to escape HTML to prevent XSS
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Global function to render activities (used by both initial load and updates)
 function renderActivities(activities) {
   const activitiesList = document.getElementById("activities-list");
@@ -26,12 +36,16 @@ function renderActivities(activities) {
           <ul class="participants-list">
             ${details.participants
               .map(
-                (email) => `
+                (email) => {
+                  const escapedName = escapeHtml(name);
+                  const escapedEmail = escapeHtml(email);
+                  return `
               <li>
-                <span>${email}</span>
-                <button class="delete-btn" onclick="unregisterParticipant('${name}', '${email}')">✕</button>
+                <span>${escapedEmail}</span>
+                <button class="delete-btn" onclick="unregisterParticipant('${escapedName}', '${escapedEmail}')">✕</button>
               </li>
-            `
+            `;
+                }
               )
               .join("")}
           </ul>
@@ -40,9 +54,9 @@ function renderActivities(activities) {
     }
 
     activityCard.innerHTML = `
-      <h4>${name}</h4>
-      <p>${details.description}</p>
-      <p><strong>Schedule:</strong> ${details.schedule}</p>
+      <h4>${escapeHtml(name)}</h4>
+      <p>${escapeHtml(details.description)}</p>
+      <p><strong>Schedule:</strong> ${escapeHtml(details.schedule)}</p>
       <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
       ${participantsHTML}
     `;
@@ -104,10 +118,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       messageDiv.classList.remove("hidden");
 
-      // Hide message after 5 seconds
+      // Hide message after delay
       setTimeout(() => {
         messageDiv.classList.add("hidden");
-      }, 5000);
+      }, MESSAGE_AUTO_HIDE_DELAY);
     } catch (error) {
       messageDiv.textContent = "Failed to sign up. Please try again.";
       messageDiv.className = "error";
@@ -138,10 +152,10 @@ async function unregisterParticipant(activityName, email) {
       messageDiv.className = "success";
       messageDiv.classList.remove("hidden");
 
-      // Hide message after 5 seconds
+      // Hide message after delay
       setTimeout(() => {
         messageDiv.classList.add("hidden");
-      }, 5000);
+      }, MESSAGE_AUTO_HIDE_DELAY);
 
       // Refresh the activities list
       await fetchActivities();
@@ -152,7 +166,7 @@ async function unregisterParticipant(activityName, email) {
 
       setTimeout(() => {
         messageDiv.classList.add("hidden");
-      }, 5000);
+      }, MESSAGE_AUTO_HIDE_DELAY);
     }
   } catch (error) {
     const messageDiv = document.getElementById("message");
