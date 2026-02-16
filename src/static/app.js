@@ -1,13 +1,6 @@
 // Constants
 const MESSAGE_AUTO_HIDE_DELAY = 5000;
 
-// Helper function to escape HTML to prevent XSS
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
 // Global function to render activities (used by both initial load and updates)
 function renderActivities(activities) {
   const activitiesList = document.getElementById("activities-list");
@@ -28,38 +21,70 @@ function renderActivities(activities) {
     const spotsLeft = details.max_participants - details.participants.length;
 
     // Build participants list
-    let participantsHTML = "";
     if (details.participants.length > 0) {
-      participantsHTML = `
-        <div class="participants-section">
-          <strong>Participants:</strong>
-          <ul class="participants-list">
-            ${details.participants
-              .map(
-                (email) => {
-                  const escapedName = escapeHtml(name);
-                  const escapedEmail = escapeHtml(email);
-                  return `
-              <li>
-                <span>${escapedEmail}</span>
-                <button class="delete-btn" onclick="unregisterParticipant('${escapedName}', '${escapedEmail}')">✕</button>
-              </li>
-            `;
-                }
-              )
-              .join("")}
-          </ul>
-        </div>
+      const participantsSection = document.createElement("div");
+      participantsSection.className = "participants-section";
+      
+      const participantsTitle = document.createElement("strong");
+      participantsTitle.textContent = "Participants:";
+      participantsSection.appendChild(participantsTitle);
+      
+      const participantsList = document.createElement("ul");
+      participantsList.className = "participants-list";
+      
+      details.participants.forEach((email) => {
+        const li = document.createElement("li");
+        
+        const span = document.createElement("span");
+        span.textContent = email;
+        li.appendChild(span);
+        
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.textContent = "✕";
+        deleteBtn.dataset.activityName = name;
+        deleteBtn.dataset.email = email;
+        li.appendChild(deleteBtn);
+        
+        participantsList.appendChild(li);
+      });
+      
+      participantsSection.appendChild(participantsList);
+      
+      const cardContent = document.createElement("div");
+      const title = document.createElement("h4");
+      title.textContent = name;
+      cardContent.appendChild(title);
+      
+      const desc = document.createElement("p");
+      desc.textContent = details.description;
+      cardContent.appendChild(desc);
+      
+      const schedule = document.createElement("p");
+      const scheduleStrong = document.createElement("strong");
+      scheduleStrong.textContent = "Schedule: ";
+      schedule.appendChild(scheduleStrong);
+      schedule.appendChild(document.createTextNode(details.schedule));
+      cardContent.appendChild(schedule);
+      
+      const availability = document.createElement("p");
+      const availStrong = document.createElement("strong");
+      availStrong.textContent = "Availability: ";
+      availability.appendChild(availStrong);
+      availability.appendChild(document.createTextNode(`${spotsLeft} spots left`));
+      cardContent.appendChild(availability);
+      
+      cardContent.appendChild(participantsSection);
+      activityCard.appendChild(cardContent);
+    } else {
+      // No participants - use simpler innerHTML approach
+      activityCard.innerHTML = `
+        <h4>${name}</h4>
+        <p>${details.description}</p>
+        <p><strong>Schedule:</strong> ${details.schedule}</p>
+        <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
       `;
     }
-
-    activityCard.innerHTML = `
-      <h4>${escapeHtml(name)}</h4>
-      <p>${escapeHtml(details.description)}</p>
-      <p><strong>Schedule:</strong> ${escapeHtml(details.schedule)}</p>
-      <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
-      ${participantsHTML}
-    `;
 
     activitiesList.appendChild(activityCard);
 
@@ -87,6 +112,53 @@ async function fetchActivities() {
 document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
+  const activitiesList = document.getElementById("activities-list");
+
+  // Handle unregister button clicks using event delegation
+  activitiesList.addEventListener("click", async (event) => {
+    if (event.target.classList.contains("delete-btn")) {
+      const activityName = event.target.dataset.activityName;
+      const email = event.target.dataset.email;
+      
+      try {
+        const response = await fetch(
+          `/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        const result = await response.json();
+
+        if (response.ok) {
+          messageDiv.textContent = result.message;
+          messageDiv.className = "success";
+          messageDiv.classList.remove("hidden");
+
+          // Hide message after delay
+          setTimeout(() => {
+            messageDiv.classList.add("hidden");
+          }, MESSAGE_AUTO_HIDE_DELAY);
+
+          // Refresh the activities list
+          await fetchActivities();
+        } else {
+          messageDiv.textContent = result.detail || "Failed to unregister";
+          messageDiv.className = "error";
+          messageDiv.classList.remove("hidden");
+
+          setTimeout(() => {
+            messageDiv.classList.add("hidden");
+          }, MESSAGE_AUTO_HIDE_DELAY);
+        }
+      } catch (error) {
+        messageDiv.textContent = "Failed to unregister. Please try again.";
+        messageDiv.className = "error";
+        messageDiv.classList.remove("hidden");
+        console.error("Error unregistering:", error);
+      }
+    }
+  });
 
   // Handle form submission
   signupForm.addEventListener("submit", async (event) => {
@@ -133,46 +205,3 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialize app
   fetchActivities();
 });
-
-// Global function to unregister a participant
-async function unregisterParticipant(activityName, email) {
-  try {
-    const response = await fetch(
-      `/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`,
-      {
-        method: "DELETE",
-      }
-    );
-
-    const result = await response.json();
-    const messageDiv = document.getElementById("message");
-
-    if (response.ok) {
-      messageDiv.textContent = result.message;
-      messageDiv.className = "success";
-      messageDiv.classList.remove("hidden");
-
-      // Hide message after delay
-      setTimeout(() => {
-        messageDiv.classList.add("hidden");
-      }, MESSAGE_AUTO_HIDE_DELAY);
-
-      // Refresh the activities list
-      await fetchActivities();
-    } else {
-      messageDiv.textContent = result.detail || "Failed to unregister";
-      messageDiv.className = "error";
-      messageDiv.classList.remove("hidden");
-
-      setTimeout(() => {
-        messageDiv.classList.add("hidden");
-      }, MESSAGE_AUTO_HIDE_DELAY);
-    }
-  } catch (error) {
-    const messageDiv = document.getElementById("message");
-    messageDiv.textContent = "Failed to unregister. Please try again.";
-    messageDiv.className = "error";
-    messageDiv.classList.remove("hidden");
-    console.error("Error unregistering:", error);
-  }
-}
