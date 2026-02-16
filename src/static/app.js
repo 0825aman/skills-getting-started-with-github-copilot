@@ -57,23 +57,22 @@ function renderActivities(activities) {
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+// Function to fetch activities from API
+async function fetchActivities() {
   const activitiesList = document.getElementById("activities-list");
-  const activitySelect = document.getElementById("activity");
+  try {
+    const response = await fetch("/activities");
+    const activities = await response.json();
+    renderActivities(activities);
+  } catch (error) {
+    activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
+    console.error("Error fetching activities:", error);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
-
-  // Function to fetch activities from API
-  async function fetchActivities() {
-    try {
-      const response = await fetch("/activities");
-      const activities = await response.json();
-      renderActivities(activities);
-    } catch (error) {
-      activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
-      console.error("Error fetching activities:", error);
-    }
-  }
 
   // Handle form submission
   signupForm.addEventListener("submit", async (event) => {
@@ -145,9 +144,7 @@ async function unregisterParticipant(activityName, email) {
       }, 5000);
 
       // Refresh the activities list
-      const activitiesResponse = await fetch("/activities");
-      const activities = await activitiesResponse.json();
-      renderActivities(activities);
+      await fetchActivities();
     } else {
       messageDiv.textContent = result.detail || "Failed to unregister";
       messageDiv.className = "error";
