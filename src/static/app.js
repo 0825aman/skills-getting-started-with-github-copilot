@@ -77,13 +77,28 @@ function renderActivities(activities) {
       cardContent.appendChild(participantsSection);
       activityCard.appendChild(cardContent);
     } else {
-      // No participants - use simpler innerHTML approach
-      activityCard.innerHTML = `
-        <h4>${name}</h4>
-        <p>${details.description}</p>
-        <p><strong>Schedule:</strong> ${details.schedule}</p>
-        <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
-      `;
+      // No participants - use DOM manipulation for security
+      const title = document.createElement("h4");
+      title.textContent = name;
+      activityCard.appendChild(title);
+      
+      const desc = document.createElement("p");
+      desc.textContent = details.description;
+      activityCard.appendChild(desc);
+      
+      const schedule = document.createElement("p");
+      const scheduleStrong = document.createElement("strong");
+      scheduleStrong.textContent = "Schedule: ";
+      schedule.appendChild(scheduleStrong);
+      schedule.appendChild(document.createTextNode(details.schedule));
+      activityCard.appendChild(schedule);
+      
+      const availability = document.createElement("p");
+      const availStrong = document.createElement("strong");
+      availStrong.textContent = "Availability: ";
+      availability.appendChild(availStrong);
+      availability.appendChild(document.createTextNode(`${spotsLeft} spots left`));
+      activityCard.appendChild(availability);
     }
 
     activitiesList.appendChild(activityCard);

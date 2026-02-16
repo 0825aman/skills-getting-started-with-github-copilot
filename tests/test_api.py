@@ -165,5 +165,6 @@ def test_activity_count(client):
     response = client.get("/activities")
     activities_data = response.json()
     
-    # Should have at least 9 activities (3 original + 6 added)
-    assert len(activities_data) >= 9
+    # Should have exactly 9 activities total (Chess Club, Programming Class, Gym Class,
+    # Basketball Team, Swimming Club, Art Studio, Drama Club, Debate Team, Science Club)
+    assert len(activities_data) == 9
