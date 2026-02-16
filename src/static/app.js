@@ -1,3 +1,62 @@
+// Global function to render activities (used by both initial load and updates)
+function renderActivities(activities) {
+  const activitiesList = document.getElementById("activities-list");
+  const activitySelect = document.getElementById("activity");
+
+  // Clear activities list
+  activitiesList.innerHTML = "";
+  
+  // Clear existing options except first
+  while (activitySelect.options.length > 1) {
+    activitySelect.remove(1);
+  }
+
+  Object.entries(activities).forEach(([name, details]) => {
+    const activityCard = document.createElement("div");
+    activityCard.className = "activity-card";
+
+    const spotsLeft = details.max_participants - details.participants.length;
+
+    // Build participants list
+    let participantsHTML = "";
+    if (details.participants.length > 0) {
+      participantsHTML = `
+        <div class="participants-section">
+          <strong>Participants:</strong>
+          <ul class="participants-list">
+            ${details.participants
+              .map(
+                (email) => `
+              <li>
+                <span>${email}</span>
+                <button class="delete-btn" onclick="unregisterParticipant('${name}', '${email}')">✕</button>
+              </li>
+            `
+              )
+              .join("")}
+          </ul>
+        </div>
+      `;
+    }
+
+    activityCard.innerHTML = `
+      <h4>${name}</h4>
+      <p>${details.description}</p>
+      <p><strong>Schedule:</strong> ${details.schedule}</p>
+      <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+      ${participantsHTML}
+    `;
+
+    activitiesList.appendChild(activityCard);
+
+    // Add option to select dropdown
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    activitySelect.appendChild(option);
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const activitiesList = document.getElementById("activities-list");
   const activitySelect = document.getElementById("activity");
@@ -9,55 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const response = await fetch("/activities");
       const activities = await response.json();
-
-      // Clear loading message
-      activitiesList.innerHTML = "";
-
-      // Populate activities list
-      Object.entries(activities).forEach(([name, details]) => {
-        const activityCard = document.createElement("div");
-        activityCard.className = "activity-card";
-
-        const spotsLeft = details.max_participants - details.participants.length;
-
-        // Build participants list
-        let participantsHTML = "";
-        if (details.participants.length > 0) {
-          participantsHTML = `
-            <div class="participants-section">
-              <strong>Participants:</strong>
-              <ul class="participants-list">
-                ${details.participants
-                  .map(
-                    (email) => `
-                  <li>
-                    <span>${email}</span>
-                    <button class="delete-btn" onclick="unregisterParticipant('${name}', '${email}')">✕</button>
-                  </li>
-                `
-                  )
-                  .join("")}
-              </ul>
-            </div>
-          `;
-        }
-
-        activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
-          <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
-          ${participantsHTML}
-        `;
-
-        activitiesList.appendChild(activityCard);
-
-        // Add option to select dropdown
-        const option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        activitySelect.appendChild(option);
-      });
+      renderActivities(activities);
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
       console.error("Error fetching activities:", error);
@@ -121,12 +132,9 @@ async function unregisterParticipant(activityName, email) {
     );
 
     const result = await response.json();
+    const messageDiv = document.getElementById("message");
 
     if (response.ok) {
-      // Refresh activities to show updated participant list
-      const activitiesList = document.getElementById("activities-list");
-      const messageDiv = document.getElementById("message");
-      
       messageDiv.textContent = result.message;
       messageDiv.className = "success";
       messageDiv.classList.remove("hidden");
@@ -137,61 +145,10 @@ async function unregisterParticipant(activityName, email) {
       }, 5000);
 
       // Refresh the activities list
-      await fetch("/activities")
-        .then((res) => res.json())
-        .then((activities) => {
-          activitiesList.innerHTML = "";
-          const activitySelect = document.getElementById("activity");
-          // Clear existing options except first
-          while (activitySelect.options.length > 1) {
-            activitySelect.remove(1);
-          }
-
-          Object.entries(activities).forEach(([name, details]) => {
-            const activityCard = document.createElement("div");
-            activityCard.className = "activity-card";
-
-            const spotsLeft = details.max_participants - details.participants.length;
-
-            let participantsHTML = "";
-            if (details.participants.length > 0) {
-              participantsHTML = `
-                <div class="participants-section">
-                  <strong>Participants:</strong>
-                  <ul class="participants-list">
-                    ${details.participants
-                      .map(
-                        (email) => `
-                      <li>
-                        <span>${email}</span>
-                        <button class="delete-btn" onclick="unregisterParticipant('${name}', '${email}')">✕</button>
-                      </li>
-                    `
-                      )
-                      .join("")}
-                  </ul>
-                </div>
-              `;
-            }
-
-            activityCard.innerHTML = `
-              <h4>${name}</h4>
-              <p>${details.description}</p>
-              <p><strong>Schedule:</strong> ${details.schedule}</p>
-              <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
-              ${participantsHTML}
-            `;
-
-            activitiesList.appendChild(activityCard);
-
-            const option = document.createElement("option");
-            option.value = name;
-            option.textContent = name;
-            activitySelect.appendChild(option);
-          });
-        });
+      const activitiesResponse = await fetch("/activities");
+      const activities = await activitiesResponse.json();
+      renderActivities(activities);
     } else {
-      const messageDiv = document.getElementById("message");
       messageDiv.textContent = result.detail || "Failed to unregister";
       messageDiv.className = "error";
       messageDiv.classList.remove("hidden");
