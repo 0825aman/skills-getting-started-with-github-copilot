@@ -77,7 +77,7 @@ function renderActivities(activities) {
       cardContent.appendChild(participantsSection);
       activityCard.appendChild(cardContent);
     } else {
-      // No participants - use DOM manipulation for security
+      // No participants - simpler structure without participant section
       const title = document.createElement("h4");
       title.textContent = name;
       activityCard.appendChild(title);
@@ -119,7 +119,11 @@ async function fetchActivities() {
     const activities = await response.json();
     renderActivities(activities);
   } catch (error) {
-    activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
+    // Clear and show error message using DOM manipulation
+    activitiesList.innerHTML = "";
+    const errorMsg = document.createElement("p");
+    errorMsg.textContent = "Failed to load activities. Please try again later.";
+    activitiesList.appendChild(errorMsg);
     console.error("Error fetching activities:", error);
   }
 }
